@@ -656,12 +656,46 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
     });
 });
 
+// Populate coin list dropdown
+async function populateCoinList() {
+    const selectElement = document.getElementById('coinSelect');
+    try {
+        const endpoint = '/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false';
+        const coins = await fetchData(endpoint);
+
+        const stablecoinSymbols = ['usdt', 'usdc', 'dai', 'busd', 'tusd', 'ust', 'fdusd', 'usde', 'pyusd'];
+
+        const filteredCoins = coins.filter(coin => !stablecoinSymbols.includes(coin.symbol.toLowerCase()));
+
+        // Clear existing options (like 'Loading...')
+        selectElement.innerHTML = '';
+
+        // Populate with top 50 non-stablecoins
+        filteredCoins.slice(0, 50).forEach(coin => {
+            const option = document.createElement('option');
+            option.value = coin.id;
+            option.textContent = `${coin.name} (${coin.symbol.toUpperCase()})`;
+            selectElement.appendChild(option);
+        });
+
+        // Set default to bitcoin if it's in the list
+        if (filteredCoins.some(c => c.id === 'bitcoin')) {
+            selectElement.value = 'bitcoin';
+        }
+
+    } catch (error) {
+        console.error('Failed to populate coin list:', error);
+        selectElement.innerHTML = '<option value="bitcoin">Failed to load list</option>';
+    }
+}
+
 // Initialize
 function init() {
     updateCurrentTime();
     setInterval(updateCurrentTime, 1000);
 
-    // Load Bitcoin by default
+    // Populate the dropdown and load Bitcoin by default
+    populateCoinList();
     calculateMVRV('bitcoin');
 }
 
