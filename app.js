@@ -153,10 +153,13 @@ async function fetchCoinData(coinId) {
         const marketResponse = await fetch(`${PROXY_URL}${encodeURIComponent(marketApiUrl)}`);
 
         if (!marketResponse.ok) {
-            throw new Error('Failed to fetch market data');
+            throw new Error('Failed to fetch market data from proxy');
         }
 
         const marketDataWrapper = await marketResponse.json();
+        if (marketDataWrapper.status.http_code !== 200) {
+            throw new Error(`CoinGecko API returned status ${marketDataWrapper.status.http_code}`);
+        }
         const marketData = JSON.parse(marketDataWrapper.contents);
 
         if (!marketData || marketData.length === 0) {
@@ -173,7 +176,11 @@ async function fetchCoinData(coinId) {
         let historicalData = null;
         if (historicalResponse.ok) {
             const historicalDataWrapper = await historicalResponse.json();
-            historicalData = JSON.parse(historicalDataWrapper.contents);
+            if (historicalDataWrapper.status.http_code === 200) {
+                historicalData = JSON.parse(historicalDataWrapper.contents);
+            } else {
+                console.warn(`Could not fetch historical data. Status: ${historicalDataWrapper.status.http_code}`);
+            }
         }
 
         return {
