@@ -12,14 +12,31 @@ const PROXY_ENDPOINT = '/api/proxy';
 
 // Global fetch helper for the Vercel proxy
 const fetchData = async (coinGeckoEndpoint) => {
-    // Construct the full URL to the proxy, passing the CoinGecko endpoint as a query parameter.
     const response = await fetch(`${PROXY_ENDPOINT}?endpoint=${encodeURIComponent(coinGeckoEndpoint)}`);
+
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response from proxy' }));
-        // Extract the actual error message from CoinGecko if available
-        const errorMessage = errorData.error?.error?.message || errorData.error || `Proxy request failed with status: ${response.status}`;
-        throw new Error(errorMessage);
+        const contentType = response.headers.get('content-type');
+        let errorText = `Proxy request failed with status: ${response.status}`;
+
+        try {
+            if (contentType && contentType.includes('application/json')) {
+                const errorData = await response.json();
+                errorText = errorData.error?.error || errorData.error || JSON.stringify(errorData);
+            } else {
+                errorText = await response.text();
+            }
+        } catch (e) {
+            errorText = 'Failed to parse error response from proxy.';
+        }
+
+        // Avoid dumping a whole HTML page into the error message
+        if (errorText.length > 250) {
+            errorText = errorText.substring(0, 250) + '...';
+        }
+
+        throw new Error(errorText);
     }
+
     return response.json();
 };
 
