@@ -665,13 +665,13 @@ async function populateCoinList() {
 
         const excludedSymbols = [
             // Stablecoins
-            'usdt', 'usdc', 'dai', 'busd', 'tusd', 'ust', 'fdusd', 'usde', 'pyusd', 'usd1',
+            'usdt', 'usdc', 'dai', 'busd', 'tusd', 'ust', 'fdusd', 'usde', 'pyusd', 'usd1', 'xaut',
             // Wrapped tokens
             'weth', 'wbtc', 'wbnb', 'wmatic', 'wavax', 'wftm', 'wone', 'wglmr',
-            // Staked tokens
-            'steth', 'reth', 'cbeth', 'sfrxeth', 'wsteth', 'eeth', 'oseth',
-            // Other wrapped/synthetic tokens
-            'renbtc', 'hbtc', 'btcb', 'anyeth', 'syneth'
+            // Staked/LP tokens
+            'steth', 'reth', 'cbeth', 'sfrxeth', 'wsteth', 'eeth', 'oseth', 'jitosol', 'jlp',
+            // Other
+            'renbtc', 'hbtc', 'btcb', 'anyeth', 'syneth', 'build'
         ];
 
         const filteredCoins = coins.filter(coin => {
