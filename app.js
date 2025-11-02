@@ -669,9 +669,9 @@ async function populateCoinList() {
             // Wrapped tokens
             'weth', 'wbtc', 'wbnb', 'wmatic', 'wavax', 'wftm', 'wone', 'wglmr',
             // Staked/LP tokens
-            'steth', 'reth', 'cbeth', 'sfrxeth', 'wsteth', 'eeth', 'oseth', 'jitosol', 'jlp',
+            'steth', 'reth', 'cbeth', 'sfrxeth', 'wsteth', 'eeth', 'oseth', 'jitosol', 'jlp', 'bnsol',
             // Other
-            'renbtc', 'hbtc', 'btcb', 'anyeth', 'syneth', 'build'
+            'renbtc', 'hbtc', 'btcb', 'anyeth', 'syneth', 'build', 'buidl', 'figr_heloc'
         ];
 
         const filteredCoins = coins.filter(coin => {
