@@ -147,40 +147,44 @@ function getMVRVStatus(mvrv) {
 
 // Fetch coin data from CoinGecko
 async function fetchCoinData(coinId) {
+    const fetchData = async (url) => {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Network response was not ok.');
+        }
+        const data = await response.json();
+        // allorigins.win wraps the response in a 'contents' field
+        if (data.contents) {
+            const parsedData = JSON.parse(data.contents);
+            // Check for API errors from CoinGecko within the wrapped response
+            if (parsedData.status && parsedData.status.error_code) {
+                throw new Error(parsedData.status.error_message || 'CoinGecko API error');
+            }
+            return parsedData;
+        }
+        return data;
+    };
+
     try {
         // Fetch market data
-        const marketApiUrl = `${API_BASE_URL}/coins/markets?vs_currency=usd&ids=${coinId}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d`;
-        const marketResponse = await fetch(`${PROXY_URL}${encodeURIComponent(marketApiUrl)}`);
-
-        if (!marketResponse.ok) {
-            throw new Error('Failed to fetch market data from proxy');
-        }
-
-        const marketDataWrapper = await marketResponse.json();
-        if (marketDataWrapper.status.http_code !== 200) {
-            throw new Error(`CoinGecko API returned status ${marketDataWrapper.status.http_code}`);
-        }
-        const marketData = JSON.parse(marketDataWrapper.contents);
+        const marketApiUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinId}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d`;
+        const marketData = await fetchData(`https://api.allorigins.win/get?url=${encodeURIComponent(marketApiUrl)}`);
 
         if (!marketData || marketData.length === 0) {
             throw new Error('Coin not found. Please check the coin ID.');
         }
 
         // Wait a bit to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1200)); // Adjusted delay
 
         // Fetch historical data (30 days)
-        const historicalApiUrl = `${API_BASE_URL}/coins/${coinId}/market_chart?vs_currency=usd&days=30`;
-        const historicalResponse = await fetch(`${PROXY_URL}${encodeURIComponent(historicalApiUrl)}`);
-
+        const historicalApiUrl = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=30`;
         let historicalData = null;
-        if (historicalResponse.ok) {
-            const historicalDataWrapper = await historicalResponse.json();
-            if (historicalDataWrapper.status.http_code === 200) {
-                historicalData = JSON.parse(historicalDataWrapper.contents);
-            } else {
-                console.warn(`Could not fetch historical data. Status: ${historicalDataWrapper.status.http_code}`);
-            }
+        try {
+            historicalData = await fetchData(`https://api.allorigins.win/get?url=${encodeURIComponent(historicalApiUrl)}`);
+        } catch (histError) {
+            console.warn(`Could not fetch historical data: ${histError.message}`);
+            // Proceed without historical data, the app can handle it
         }
 
         return {
@@ -189,11 +193,7 @@ async function fetchCoinData(coinId) {
         };
     } catch (error) {
         console.error('Error fetching coin data:', error);
-        // Provide a more specific error message for fetch failures
-        if (error instanceof TypeError && error.message === 'Failed to fetch') {
-            throw new Error('Network request failed. This could be a CORS issue or a network problem.');
-        }
-        throw error;
+        throw error; // Re-throw the original error to be caught by calculateMVRV
     }
 }
 
