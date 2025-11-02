@@ -449,6 +449,8 @@ async function fetchComparisonData() {
 
         localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: results }));
 
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: results }));
+
         results.forEach(updateComparisonTableRow);
         createComparisonChart(results);
         showElement('comparisonResults');
