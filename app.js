@@ -663,9 +663,32 @@ async function populateCoinList() {
         const endpoint = '/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false';
         const coins = await fetchData(endpoint);
 
-        const stablecoinSymbols = ['usdt', 'usdc', 'dai', 'busd', 'tusd', 'ust', 'fdusd', 'usde', 'pyusd'];
+        const excludedSymbols = [
+            // Stablecoins
+            'usdt', 'usdc', 'dai', 'busd', 'tusd', 'ust', 'fdusd', 'usde', 'pyusd', 'usd1',
+            // Wrapped tokens
+            'weth', 'wbtc', 'wbnb', 'wmatic', 'wavax', 'wftm', 'wone', 'wglmr',
+            // Staked tokens
+            'steth', 'reth', 'cbeth', 'sfrxeth', 'wsteth', 'eeth', 'oseth',
+            // Other wrapped/synthetic tokens
+            'renbtc', 'hbtc', 'btcb', 'anyeth', 'syneth'
+        ];
 
-        const filteredCoins = coins.filter(coin => !stablecoinSymbols.includes(coin.symbol.toLowerCase()));
+        const filteredCoins = coins.filter(coin => {
+            const symbol = coin.symbol.toLowerCase();
+            const name = coin.name.toLowerCase();
+
+            // Check if symbol is in excluded list
+            if (excludedSymbols.includes(symbol)) return false;
+
+            // Check for wrapped tokens by name patterns
+            if (name.includes('wrapped') || name.startsWith('w') && name.includes('ethereum')) return false;
+
+            // Check for USD-related tokens
+            if (symbol.includes('usd') && symbol !== 'usd') return false;
+
+            return true;
+        });
 
         // Clear existing options (like 'Loading...')
         selectElement.innerHTML = '';
