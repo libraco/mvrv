@@ -401,23 +401,28 @@ async function calculateMVRV(coinId) {
 async function fetchComparisonData() {
     showElement('comparisonLoading');
     hideElement('comparisonError');
-    showElement('comparisonResults');
+    hideElement('comparisonResults');
 
     const tbody = document.getElementById('comparisonTableBody');
-    tbody.innerHTML = ''; // Clear previous results
+    tbody.innerHTML = '';
 
-    const allResults = [];
+    try {
+        const coinIds = comparisonCoins.join(',');
+        const marketApiUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinIds}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d`;
 
-    for (const coinId of comparisonCoins) {
-        try {
-            const data = await fetchCoinData(coinId);
-            const { market, historical } = data;
+        const marketDataArray = await fetchData(`https://api.allorigins.win/get?url=${encodeURIComponent(marketApiUrl)}`);
 
+        if (!marketDataArray || marketDataArray.length === 0) {
+            throw new Error('No data returned for comparison coins.');
+        }
+
+        const results = marketDataArray.map(market => {
+            const historical = { prices: market.sparkline_in_7d.price.map((p, i) => [Date.now() - (7 - i) * 24 * 60 * 60 * 1000, p]) };
             const marketValue = market.market_cap;
             const realizedValue = calculateRealizedValue(market.id, market.current_price, marketValue, historical);
             const mvrv = marketValue / realizedValue;
 
-            const coinResult = {
+            return {
                 id: market.id,
                 name: market.name,
                 symbol: market.symbol.toUpperCase(),
@@ -426,25 +431,19 @@ async function fetchComparisonData() {
                 mvrv: mvrv,
                 status: getMVRVStatus(mvrv)
             };
+        });
 
-            allResults.push(coinResult);
-            updateComparisonTableRow(coinResult);
+        results.forEach(updateComparisonTableRow);
+        createComparisonChart(results);
+        showElement('comparisonResults');
 
-        } catch (error) {
-            console.error(`Failed to fetch data for ${coinId}:`, error);
-            displayComparisonErrorRow(coinId, error.message);
-        }
-        await new Promise(resolve => setTimeout(resolve, 1500));
-    }
-
-    hideElement('comparisonLoading');
-
-    if (allResults.length > 0) {
-        createComparisonChart(allResults);
-    } else {
+    } catch (error) {
+        console.error('Failed to fetch comparison data:', error);
         const errorDiv = document.getElementById('comparisonError');
-        errorDiv.textContent = 'Error: Failed to fetch any comparison data.';
+        errorDiv.textContent = 'Error: ' + error.message;
         showElement('comparisonError');
+    } finally {
+        hideElement('comparisonLoading');
     }
 }
 
