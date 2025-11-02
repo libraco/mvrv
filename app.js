@@ -26,10 +26,10 @@ const fetchData = async (url) => {
 // Update current time
 function updateCurrentTime() {
     const now = new Date();
-    const options = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
+    const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
@@ -41,9 +41,9 @@ function updateCurrentTime() {
 // Format number with commas
 function formatNumber(num, decimals = 2) {
     if (num === null || num === undefined) return 'N/A';
-    return num.toLocaleString('en-US', { 
-        minimumFractionDigits: decimals, 
-        maximumFractionDigits: decimals 
+    return num.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
     });
 }
 
@@ -75,6 +75,25 @@ function hideElement(id) {
     if (element) element.classList.add('hidden');
 }
 
+// Cooldown for buttons
+function cooldownButton(button, duration = 3000) {
+    button.disabled = true;
+    const originalText = button.textContent;
+    let seconds = duration / 1000;
+    button.textContent = `Wait (${seconds}s)`;
+
+    const interval = setInterval(() => {
+        seconds--;
+        if (seconds > 0) {
+            button.textContent = `Wait (${seconds}s)`;
+        } else {
+            clearInterval(interval);
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    }, 1000);
+}
+
 // Show error message
 function showError(message) {
     const errorDiv = document.getElementById('errorMessage');
@@ -88,7 +107,7 @@ function showError(message) {
 function calculateRealizedValue(coinId, currentPrice, marketCap, historicalData) {
     // Estimation method based on coin and historical data
     let realizationRatio = 0.75; // Default 75% of current price
-    
+
     // Adjust based on coin
     if (coinId === 'bitcoin') {
         realizationRatio = 0.70; // Bitcoin tends to have lower realized price
@@ -97,7 +116,7 @@ function calculateRealizedValue(coinId, currentPrice, marketCap, historicalData)
     } else if (['solana', 'avalanche-2', 'cardano', 'polkadot'].includes(coinId)) {
         realizationRatio = 0.68; // Newer coins might have lower realized prices
     }
-    
+
     // If we have historical data, use 30-day average
     if (historicalData && historicalData.prices && historicalData.prices.length > 0) {
         const prices = historicalData.prices.map(p => p[1]);
@@ -105,7 +124,7 @@ function calculateRealizedValue(coinId, currentPrice, marketCap, historicalData)
         const realizedPrice = avgPrice * realizationRatio;
         return (marketCap / currentPrice) * realizedPrice;
     }
-    
+
     // Fallback: estimate realized cap
     return marketCap * realizationRatio;
 }
@@ -158,7 +177,7 @@ function getMVRVStatus(mvrv) {
 }
 
 // Fetch coin data from CoinGecko
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
 
 async function fetchCoinData(coinId) {
     const cacheKey = `coin_data_${coinId}`;
@@ -222,16 +241,16 @@ async function fetchCoinData(coinId) {
 function createGaugeChart(mvrv) {
     const canvas = document.getElementById('gaugeChart');
     const ctx = canvas.getContext('2d');
-    
+
     // Destroy existing chart
     if (chartInstance) {
         chartInstance.destroy();
     }
-    
+
     // Determine position on gauge (0-10 scale)
     const value = Math.min(mvrv, 10);
     const position = (value / 10) * 100;
-    
+
     // Create gradient colors
     const colors = [
         '#006400', // Dark green
@@ -242,7 +261,7 @@ function createGaugeChart(mvrv) {
         '#FF4500', // Red-orange
         '#8B0000'  // Dark red
     ];
-    
+
     chartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -287,14 +306,14 @@ function createGaugeChart(mvrv) {
 // Display coin data
 function displayCoinData(data) {
     const { market, historical } = data;
-    
+
     // Update coin header
     document.getElementById('coinName').textContent = market.name;
     document.getElementById('coinSymbol').textContent = market.symbol.toUpperCase();
-    
+
     // Update current price
     document.getElementById('currentPrice').textContent = formatCurrency(market.current_price, 2);
-    
+
     // Update 24h change
     const change24h = market.price_change_percentage_24h;
     const change24hElement = document.getElementById('priceChange24h');
@@ -305,10 +324,10 @@ function displayCoinData(data) {
         change24hElement.textContent = 'N/A';
         change24hElement.className = 'data-change';
     }
-    
+
     // Update market cap
     document.getElementById('marketCap').textContent = formatLargeNumber(market.market_cap);
-    
+
     // Update market cap change
     const mcChange = market.market_cap_change_percentage_24h;
     const mcChangeElement = document.getElementById('marketCapChange');
@@ -319,10 +338,10 @@ function displayCoinData(data) {
         mcChangeElement.textContent = 'N/A';
         mcChangeElement.className = 'data-change';
     }
-    
+
     // Update circulating supply
     document.getElementById('circulatingSupply').textContent = formatNumber(market.circulating_supply, 0);
-    
+
     // Update 7d change
     const change7d = market.price_change_percentage_7d_in_currency;
     const change7dElement = document.getElementById('priceChange7d');
@@ -333,30 +352,30 @@ function displayCoinData(data) {
         change7dElement.textContent = 'N/A';
         change7dElement.className = 'data-value';
     }
-    
+
     // Calculate MVRV
     const marketValue = market.market_cap;
     const realizedValue = calculateRealizedValue(market.id, market.current_price, marketValue, historical);
     const mvrv = marketValue / realizedValue;
     const holderProfit = ((mvrv - 1) * 100);
-    
+
     // Update MVRV section
     document.getElementById('marketValue').textContent = formatLargeNumber(marketValue);
     document.getElementById('realizedValue').textContent = formatLargeNumber(realizedValue);
     document.getElementById('mvrvRatio').textContent = mvrv.toFixed(2);
     document.getElementById('holderProfit').textContent = (holderProfit > 0 ? '+' : '') + holderProfit.toFixed(2) + '%';
-    
+
     // Update status
     const statusInfo = getMVRVStatus(mvrv);
     const statusCard = document.getElementById('statusCard');
     const statusIndicator = document.getElementById('statusIndicator');
     const statusDescription = document.getElementById('statusDescription');
-    
+
     statusCard.style.backgroundColor = statusInfo.bgColor;
     statusCard.style.borderColor = statusInfo.color;
     statusIndicator.textContent = statusInfo.status;
     statusIndicator.style.color = statusInfo.color;
-    
+
     if (mvrv > 2.0) {
         statusDescription.textContent = 'The market is showing signs of overheating. Historical data suggests this could be a good time to consider taking profits.';
     } else if (mvrv > 1.0) {
@@ -364,14 +383,14 @@ function displayCoinData(data) {
     } else {
         statusDescription.textContent = 'The market appears undervalued. Historical data suggests this could be an accumulation opportunity.';
     }
-    
+
     // Create gauge chart
     createGaugeChart(mvrv);
-    
+
     // Update last update time
     lastFetchTime = new Date();
     document.getElementById('lastUpdate').textContent = 'Last updated: ' + lastFetchTime.toLocaleTimeString();
-    
+
     // Show results
     hideElement('loadingSpinner');
     hideElement('errorMessage');
@@ -384,7 +403,7 @@ async function calculateMVRV(coinId) {
         showElement('loadingSpinner');
         hideElement('errorMessage');
         hideElement('resultsContainer');
-        
+
         const data = await fetchCoinData(coinId);
         currentCoin = coinId;
         displayCoinData(data);
@@ -505,16 +524,16 @@ function displayComparisonErrorRow(coinId, message) {
 function createComparisonChart(results) {
     const canvas = document.getElementById('comparisonChart');
     const ctx = canvas.getContext('2d');
-    
+
     // Destroy existing chart
     if (comparisonChartInstance) {
         comparisonChartInstance.destroy();
     }
-    
+
     const labels = results.map(r => r.name);
     const data = results.map(r => r.mvrv);
     const colors = results.map(r => r.status.color);
-    
+
     comparisonChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -572,14 +591,16 @@ function createComparisonChart(results) {
 }
 
 // Event Listeners
-document.getElementById('calculateBtn').addEventListener('click', () => {
-    const selectValue = document.getElementById('coinSelect').value;
-    const inputValue = document.getElementById('coinInput').value.trim();
-    const coinId = inputValue || selectValue;
-    calculateMVRV(coinId);
+document.getElementById('calculateBtn').addEventListener('click', (e) => {
+    const coinId = document.getElementById('coinInput').value.trim() || document.getElementById('coinSelect').value;
+    if (coinId) {
+        cooldownButton(e.currentTarget);
+        calculateMVRV(coinId);
+    }
 });
 
-document.getElementById('refreshBtn').addEventListener('click', () => {
+document.getElementById('refreshBtn').addEventListener('click', (e) => {
+    cooldownButton(e.currentTarget);
     calculateMVRV(currentCoin);
 });
 
@@ -592,7 +613,8 @@ document.getElementById('coinInput').addEventListener('keypress', (e) => {
     }
 });
 
-document.getElementById('refreshComparisonBtn').addEventListener('click', () => {
+document.getElementById('refreshComparisonBtn').addEventListener('click', (e) => {
+    cooldownButton(e.currentTarget);
     fetchComparisonData();
 });
 
@@ -600,11 +622,11 @@ document.getElementById('refreshComparisonBtn').addEventListener('click', () => 
 document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const mode = btn.dataset.mode;
-        
+
         // Update active button
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        
+
         // Switch sections
         if (mode === 'individual') {
             showElement('individualSection');
@@ -614,7 +636,7 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
             hideElement('individualSection');
             showElement('comparisonSection');
             currentMode = 'comparison';
-            
+
             // Load comparison data if not already loaded
             const comparisonResults = document.getElementById('comparisonResults');
             if (comparisonResults.classList.contains('hidden')) {
@@ -628,7 +650,7 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 function init() {
     updateCurrentTime();
     setInterval(updateCurrentTime, 1000);
-    
+
     // Load Bitcoin by default
     calculateMVRV('bitcoin');
 }
