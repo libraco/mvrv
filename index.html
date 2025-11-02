@@ -235,6 +235,8 @@
         </footer>
     </div>
 
-    <script src="app.js?v=1.0.0"></script>
+    <script>
+        document.write('<script src="app.js?v=' + new Date().getTime() + '"><\/script>');
+    </script>
 </body>
 </html>
