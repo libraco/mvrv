@@ -20,8 +20,7 @@ module.exports = (req, res) => {
         return res.status(200).end();
     }
 
-    const url = new URL(req.url, `https://${req.headers.host}`);
-    const endpoint = url.searchParams.get('endpoint');
+        const { endpoint } = req.query;
 
     if (!endpoint) {
         return res.status(400).json({ error: 'Endpoint query parameter is required' });
