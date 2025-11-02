@@ -7,7 +7,8 @@ let chartInstance = null;
 let comparisonChartInstance = null;
 
 // Constants
-const API_BASE_URL = 'https://corsproxy.io/?https://api.coingecko.com/api/v3';
+const PROXY_URL = 'https://corsproxy.io/?';
+const API_BASE_URL = 'https://api.coingecko.com/api/v3';
 const RATE_LIMIT_DELAY = 5000; // 5 seconds between calls
 
 // Update current time
@@ -148,9 +149,8 @@ function getMVRVStatus(mvrv) {
 async function fetchCoinData(coinId) {
     try {
         // Fetch market data
-        const marketResponse = await fetch(
-            `${API_BASE_URL}/coins/markets?vs_currency=usd&ids=${coinId}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d`
-        );
+        const marketApiUrl = `${API_BASE_URL}/coins/markets?vs_currency=usd&ids=${coinId}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d`;
+        const marketResponse = await fetch(`${PROXY_URL}${encodeURIComponent(marketApiUrl)}`);
 
         if (!marketResponse.ok) {
             throw new Error('Failed to fetch market data');
@@ -166,9 +166,8 @@ async function fetchCoinData(coinId) {
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Fetch historical data (30 days)
-        const historicalResponse = await fetch(
-            `${API_BASE_URL}/coins/${coinId}/market_chart?vs_currency=usd&days=30`
-        );
+        const historicalApiUrl = `${API_BASE_URL}/coins/${coinId}/market_chart?vs_currency=usd&days=30`;
+        const historicalResponse = await fetch(`${PROXY_URL}${encodeURIComponent(historicalApiUrl)}`);
 
         let historicalData = null;
         if (historicalResponse.ok) {
