@@ -8,7 +8,7 @@ let comparisonChartInstance = null;
 
 // Constants
 const API_BASE_URL = 'https://api.coingecko.com/api/v3';
-const API_KEY = 'x_cg_demo_api_key=CG-B6a35k9a1a2bYd1d3e1f5g7H'; // Free demo key
+const API_KEY = 'x_cg_demo_api_key=CG-SYs6geL25Bic3Haoyp6Me9yf'; // User-provided demo key
 
 // Global fetch helper
 const fetchData = async (url) => {
@@ -610,6 +610,8 @@ document.getElementById('coinInput').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         const inputValue = document.getElementById('coinInput').value.trim();
         if (inputValue) {
+            const calculateBtn = document.getElementById('calculateBtn');
+            cooldownButton(calculateBtn);
             calculateMVRV(inputValue);
         }
     }
