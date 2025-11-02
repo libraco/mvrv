@@ -7,12 +7,13 @@ let chartInstance = null;
 let comparisonChartInstance = null;
 
 // Constants
-// IMPORTANT: Replace this with your deployed proxy server URL
-const PROXY_BASE_URL = 'http://localhost:3000';
+// The base URL will be the domain Vercel assigns, so we use a relative path.
+const PROXY_ENDPOINT = '/api/proxy';
 
-// Global fetch helper for proxy
-const fetchData = async (endpoint) => {
-    const response = await fetch(`${PROXY_BASE_URL}/proxy?endpoint=${encodeURIComponent(endpoint)}`);
+// Global fetch helper for the Vercel proxy
+const fetchData = async (coinGeckoEndpoint) => {
+    // Construct the full URL to the proxy, passing the CoinGecko endpoint as a query parameter.
+    const response = await fetch(`${PROXY_ENDPOINT}?endpoint=${encodeURIComponent(coinGeckoEndpoint)}`);
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response from proxy' }));
         // Extract the actual error message from CoinGecko if available
