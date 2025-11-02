@@ -1,6 +1,0 @@
-{
-  "name": "mvrv-proxy-function",
-  "version": "1.0.0",
-  "description": "Proxy function for MVRV Calculator.",
-  "main": "proxy.js"
-}

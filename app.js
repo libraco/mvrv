@@ -7,34 +7,23 @@ let chartInstance = null;
 let comparisonChartInstance = null;
 
 // Constants
-// The base URL will be the domain Vercel assigns, so we use a relative path.
-const PROXY_ENDPOINT = '/api/proxy';
+// WARNING: Your API key is exposed in this public-facing code.
+const API_KEY = 'CG-d7VHX9ZDF3S9WCxUwax6vQ7R';
+const API_BASE_URL = 'https://api.coingecko.com/api/v3';
 
-// Global fetch helper for the Vercel proxy
+// Global fetch helper to call CoinGecko API directly
 const fetchData = async (coinGeckoEndpoint) => {
-    const response = await fetch(`${PROXY_ENDPOINT}?endpoint=${encodeURIComponent(coinGeckoEndpoint)}`);
+    // The endpoint might already have query parameters, so we need to append the key correctly.
+    const separator = coinGeckoEndpoint.includes('?') ? '&' : '?';
+    const apiUrl = `${API_BASE_URL}${coinGeckoEndpoint}${separator}x_cg_demo_api_key=${API_KEY}`;
+
+    const response = await fetch(apiUrl);
 
     if (!response.ok) {
-        const contentType = response.headers.get('content-type');
-        let errorText = `Proxy request failed with status: ${response.status}`;
-
-        try {
-            if (contentType && contentType.includes('application/json')) {
-                const errorData = await response.json();
-                errorText = errorData.error?.error || errorData.error || JSON.stringify(errorData);
-            } else {
-                errorText = await response.text();
-            }
-        } catch (e) {
-            errorText = 'Failed to parse error response from proxy.';
-        }
-
-        // Avoid dumping a whole HTML page into the error message
-        if (errorText.length > 250) {
-            errorText = errorText.substring(0, 250) + '...';
-        }
-
-        throw new Error(errorText);
+        // Try to parse the error response from CoinGecko
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.error || `API request failed with status: ${response.status}`;
+        throw new Error(errorMessage);
     }
 
     return response.json();
