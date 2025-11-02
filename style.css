@@ -426,26 +426,47 @@ pre code {
 }
 
 
-.footer .donation {
-    margin: 1.5rem 0;
-    text-align: center;
+.footer-top-line {
+    margin-bottom: 1rem;
 }
 
-.footer .btc-address {
+.donation-line {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap; /* For smaller screens */
+}
+
+.btc-address {
+    color: #f7931a;
+    font-weight: bold;
     font-family: 'Courier New', Courier, monospace;
-    background-color: #f0f0f0;
-    padding: 0.5rem;
-    border-radius: 4px;
-    word-wrap: break-word;
-    border: 1px solid #ddd;
-    display: inline-block;
-    margin-top: 0.5rem;
 }
 
-.footer hr {
+.copy-btn {
+    background-color: #f7931a;
+    color: white;
     border: none;
-    border-top: 1px solid #e0e0e0;
-    margin: 1.5rem 0;
+    border-radius: 4px;
+    padding: 0.3rem 0.5rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.copy-btn:hover {
+    background-color: #e68918;
+}
+
+.copy-btn:active {
+    background-color: #d57f16;
+}
+
+.copy-btn svg {
+    color: white;
 }
 .btn--secondary {
   background: var(--color-secondary);

@@ -720,6 +720,22 @@ function init() {
     // Populate the dropdown and load Bitcoin by default
     populateCoinList();
     calculateMVRV('bitcoin');
+
+    // Add copy button functionality
+    document.getElementById('copyBtn').addEventListener('click', () => {
+        const btcAddress = document.getElementById('btcAddress').textContent;
+        navigator.clipboard.writeText(btcAddress).then(() => {
+            const copyBtn = document.getElementById('copyBtn');
+            const originalTitle = copyBtn.title;
+            copyBtn.title = 'Copied!';
+            setTimeout(() => {
+                copyBtn.title = originalTitle;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy BTC address: ', err);
+            alert('Failed to copy address.');
+        });
+    });
 }
 
 // Start the application
