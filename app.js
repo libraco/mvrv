@@ -7,7 +7,7 @@ let chartInstance = null;
 let comparisonChartInstance = null;
 
 // Constants
-const PROXY_URL = 'https://corsproxy.io/?';
+const PROXY_URL = 'https://api.allorigins.win/get?url=';
 const API_BASE_URL = 'https://api.coingecko.com/api/v3';
 const RATE_LIMIT_DELAY = 5000; // 5 seconds between calls
 
@@ -156,7 +156,8 @@ async function fetchCoinData(coinId) {
             throw new Error('Failed to fetch market data');
         }
 
-        const marketData = await marketResponse.json();
+        const marketDataWrapper = await marketResponse.json();
+        const marketData = JSON.parse(marketDataWrapper.contents);
 
         if (!marketData || marketData.length === 0) {
             throw new Error('Coin not found. Please check the coin ID.');
@@ -171,7 +172,8 @@ async function fetchCoinData(coinId) {
 
         let historicalData = null;
         if (historicalResponse.ok) {
-            historicalData = await historicalResponse.json();
+            const historicalDataWrapper = await historicalResponse.json();
+            historicalData = JSON.parse(historicalDataWrapper.contents);
         }
 
         return {
