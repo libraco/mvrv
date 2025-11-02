@@ -1,63 +1,84 @@
-const axios = require('axios');
-const NodeCache = require('node-cache');
+const https = require('https');
 
 // --- Configuration ---
-// IMPORTANT: The API key is now read from an environment variable for security.
 const API_KEY = process.env.COIN_GECKO_API_KEY;
-const API_BASE_URL = 'https://api.coingecko.com/api/v3';
-const CACHE_DURATION_SECONDS = 10 * 60; // 10 minutes
+const API_HOST = 'api.coingecko.com';
+const API_BASE_PATH = '/api/v3';
+const CACHE_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
-// --- Cache Setup ---
-// Initialize cache outside the handler to persist across invocations.
-const apiCache = new NodeCache({ stdTTL: CACHE_DURATION_SECONDS });
+// --- In-memory Cache (simple object) ---
+const cache = new Map();
 
 // --- Serverless Function Handler ---
-module.exports = async (req, res) => {
-    // Allow requests from any origin
+module.exports = (req, res) => {
+    // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    // Handle pre-flight requests for CORS
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
 
-    const { endpoint } = req.query;
+    const url = new URL(req.url, `https://${req.headers.host}`);
+    const endpoint = url.searchParams.get('endpoint');
 
     if (!endpoint) {
         return res.status(400).json({ error: 'Endpoint query parameter is required' });
     }
-
     if (!API_KEY) {
         return res.status(500).json({ error: 'API key is not configured on the server.' });
     }
 
-    const cacheKey = `coingecko_${endpoint}`;
-    const cachedData = apiCache.get(cacheKey);
-
-    if (cachedData) {
-        console.log(`[Cache HIT] for ${endpoint}`);
-        return res.status(200).json(cachedData);
+    // --- Cache Check ---
+    const cacheKey = endpoint;
+    if (cache.has(cacheKey)) {
+        const { timestamp, data } = cache.get(cacheKey);
+        if (Date.now() - timestamp < CACHE_DURATION_MS) {
+            console.log(`[Cache HIT] for ${endpoint}`);
+            return res.status(200).json(data);
+        }
     }
 
     console.log(`[Cache MISS] for ${endpoint}. Fetching from API...`);
 
-    try {
-        const apiUrl = `${API_BASE_URL}${endpoint}`;
-        const response = await axios.get(apiUrl, {
-            headers: {
-                'x-cg-demo-api-key': API_KEY
+    // --- API Request Options ---
+    const options = {
+        hostname: API_HOST,
+        path: `${API_BASE_PATH}${endpoint}`,
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-cg-demo-api-key': API_KEY,
+        },
+    };
+
+    // --- Make HTTPS Request ---
+    const apiReq = https.request(options, (apiRes) => {
+        let data = '';
+        apiRes.on('data', (chunk) => {
+            data += chunk;
+        });
+        apiRes.on('end', () => {
+            try {
+                const jsonData = JSON.parse(data);
+                if (apiRes.statusCode >= 200 && apiRes.statusCode < 300) {
+                    // Cache the successful response
+                    cache.set(cacheKey, { timestamp: Date.now(), data: jsonData });
+                    res.status(200).json(jsonData);
+                } else {
+                    res.status(apiRes.statusCode).json(jsonData);
+                }
+            } catch (e) {
+                res.status(500).json({ error: 'Failed to parse API response' });
             }
         });
+    });
 
-        apiCache.set(cacheKey, response.data);
-        return res.status(200).json(response.data);
+    apiReq.on('error', (e) => {
+        console.error(`Problem with request: ${e.message}`);
+        res.status(500).json({ error: 'Failed to fetch from API' });
+    });
 
-    } catch (error) {
-        console.error('Error fetching from CoinGecko API:', error.message);
-        const status = error.response ? error.response.status : 500;
-        const message = error.response ? error.response.data : 'Internal Server Error';
-        return res.status(status).json({ error: message });
-    }
+    apiReq.end();
 };
