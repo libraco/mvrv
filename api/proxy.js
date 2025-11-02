@@ -44,11 +44,11 @@ module.exports = (req, res) => {
     // --- API Request Options ---
     const options = {
         hostname: API_HOST,
-        path: `${API_BASE_PATH}${endpoint}`,
+        // Append the API key to the path. The endpoint already contains a '?' if it has other params.
+        path: `${API_BASE_PATH}${endpoint}${endpoint.includes('?') ? '&' : '?'}x_cg_demo_api_key=${API_KEY}`,
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
-            'x-cg-demo-api-key': API_KEY,
+            'Content-Type': 'application/json'
         },
     };
 
