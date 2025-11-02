@@ -387,87 +387,89 @@ async function calculateMVRV(coinId) {
 
 // Fetch comparison data
 async function fetchComparisonData() {
-    try {
-        showElement('comparisonLoading');
-        hideElement('comparisonError');
-        hideElement('comparisonResults');
-        
-        const results = [];
-        
-        for (const coinId of comparisonCoins) {
-            try {
-                const data = await fetchCoinData(coinId);
-                const { market, historical } = data;
-                
-                const marketValue = market.market_cap;
-                const realizedValue = calculateRealizedValue(market.id, market.current_price, marketValue, historical);
-                const mvrv = marketValue / realizedValue;
-                
-                results.push({
-                    id: market.id,
-                    name: market.name,
-                    symbol: market.symbol.toUpperCase(),
-                    price: market.current_price,
-                    marketCap: market.market_cap,
-                    mvrv: mvrv,
-                    status: getMVRVStatus(mvrv)
-                });
-                
-                // Wait to avoid rate limiting
-                await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
-            } catch (error) {
-                console.error(`Error fetching ${coinId}:`, error);
-            }
-            // Wait between calls to avoid rate limiting, even with caching
-            await new Promise(resolve => setTimeout(resolve, 1500));
+    showElement('comparisonLoading');
+    hideElement('comparisonError');
+    showElement('comparisonResults');
+
+    const tbody = document.getElementById('comparisonTableBody');
+    tbody.innerHTML = ''; // Clear previous results
+
+    const allResults = [];
+
+    for (const coinId of comparisonCoins) {
+        try {
+            const data = await fetchCoinData(coinId);
+            const { market, historical } = data;
+
+            const marketValue = market.market_cap;
+            const realizedValue = calculateRealizedValue(market.id, market.current_price, marketValue, historical);
+            const mvrv = marketValue / realizedValue;
+
+            const coinResult = {
+                id: market.id,
+                name: market.name,
+                symbol: market.symbol.toUpperCase(),
+                price: market.current_price,
+                marketCap: market.market_cap,
+                mvrv: mvrv,
+                status: getMVRVStatus(mvrv)
+            };
+
+            allResults.push(coinResult);
+            updateComparisonTableRow(coinResult);
+
+        } catch (error) {
+            console.error(`Failed to fetch data for ${coinId}:`, error);
+            displayComparisonErrorRow(coinId, error.message);
         }
-        
-        if (results.length === 0) {
-            throw new Error('Failed to fetch comparison data');
-        }
-        
-        displayComparisonData(results);
-    } catch (error) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
+    hideElement('comparisonLoading');
+
+    if (allResults.length > 0) {
+        createComparisonChart(allResults);
+    } else {
         const errorDiv = document.getElementById('comparisonError');
-        errorDiv.textContent = 'Error: ' + error.message;
+        errorDiv.textContent = 'Error: Failed to fetch any comparison data.';
         showElement('comparisonError');
-        hideElement('comparisonLoading');
     }
 }
 
-// Display comparison data
-function displayComparisonData(results) {
-    // Update table
+function updateComparisonTableRow(coin) {
     const tbody = document.getElementById('comparisonTableBody');
-    tbody.innerHTML = '';
-    
-    results.forEach(coin => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>
-                <div class="coin-name-cell">
-                    <strong>${coin.name}</strong>
-                    <span class="coin-symbol-small">${coin.symbol}</span>
-                </div>
-            </td>
-            <td>${formatCurrency(coin.price, 2)}</td>
-            <td>${formatLargeNumber(coin.marketCap)}</td>
-            <td><strong>${coin.mvrv.toFixed(2)}</strong></td>
-            <td>
-                <span class="status-badge" style="background-color: ${coin.status.bgColor}; color: ${coin.status.color};">
-                    ${coin.status.status}
-                </span>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-    
-    // Create comparison chart
-    createComparisonChart(results);
-    
-    hideElement('comparisonLoading');
-    hideElement('comparisonError');
-    showElement('comparisonResults');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>
+            <div class="coin-name-cell">
+                <strong>${coin.name}</strong>
+                <span class="coin-symbol-small">${coin.symbol}</span>
+            </div>
+        </td>
+        <td>${formatCurrency(coin.price, 2)}</td>
+        <td>${formatLargeNumber(coin.marketCap)}</td>
+        <td><strong>${coin.mvrv.toFixed(2)}</strong></td>
+        <td>
+            <span class="status-badge" style="background-color: ${coin.status.bgColor}; color: ${coin.status.color};">
+                ${coin.status.status}
+            </span>
+        </td>
+    `;
+    tbody.appendChild(row);
+}
+
+function displayComparisonErrorRow(coinId, message) {
+    const tbody = document.getElementById('comparisonTableBody');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>
+            <div class="coin-name-cell">
+                <strong>${coinId}</strong>
+            </div>
+        </td>
+        <td colspan="4" class="error-message-cell">Failed to load: ${message}</td>
+    `;
+    tbody.appendChild(row);
 }
 
 // Create comparison chart
