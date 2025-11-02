@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVRV Calculator - Real-Time Crypto Valuation</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>MVRV Calculator</h1>
+            <p class="subtitle">Real-Time Market Value to Realized Value Analysis</p>
+            <div class="current-time" id="currentTime"></div>
+        </header>
+
+        <div class="info-banner">
+            <p><strong>Note:</strong> This calculator uses the free CoinGecko API. Realized Value is estimated using historical price averages due to API limitations. For on-chain realized cap data, use Glassnode or Santiment.</p>
+        </div>
+
+        <div class="mode-selector">
+            <button class="btn btn--secondary mode-btn active" data-mode="individual">Individual Analysis</button>
+            <button class="btn btn--secondary mode-btn" data-mode="comparison">Comparison Mode</button>
+        </div>
+
+        <!-- Individual Analysis Section -->
+        <section id="individualSection" class="analysis-section">
+            <div class="search-container card">
+                <div class="card__body">
+                    <div class="search-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="coinSelect">Select Cryptocurrency</label>
+                            <select id="coinSelect" class="form-control">
+                                <option value="bitcoin">Bitcoin (BTC)</option>
+                                <option value="ethereum">Ethereum (ETH)</option>
+                                <option value="solana">Solana (SOL)</option>
+                                <option value="avalanche-2">Avalanche (AVAX)</option>
+                                <option value="cardano">Cardano (ADA)</option>
+                                <option value="polkadot">Polkadot (DOT)</option>
+                                <option value="ripple">XRP (XRP)</option>
+                                <option value="dogecoin">Dogecoin (DOGE)</option>
+                                <option value="binancecoin">Binance Coin (BNB)</option>
+                                <option value="tron">TRON (TRX)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="coinInput">Or Enter Coin ID</label>
+                            <input type="text" id="coinInput" class="form-control" placeholder="e.g., bitcoin, ethereum">
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn--primary" id="calculateBtn">Calculate MVRV</button>
+                        <button class="btn btn--secondary" id="refreshBtn">Refresh Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="loadingSpinner" class="loading-spinner hidden">
+                <div class="spinner"></div>
+                <p>Fetching data...</p>
+            </div>
+
+            <div id="errorMessage" class="error-message hidden"></div>
+
+            <div id="resultsContainer" class="results-container hidden">
+                <div class="coin-header card">
+                    <div class="card__body">
+                        <div class="coin-title-row">
+                            <div class="coin-info">
+                                <h2 id="coinName"></h2>
+                                <span class="coin-symbol" id="coinSymbol"></span>
+                            </div>
+                            <div class="last-update">
+                                <small id="lastUpdate"></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-grid">
+                    <div class="card data-card">
+                        <div class="card__body">
+                            <div class="data-label">Current Price</div>
+                            <div class="data-value" id="currentPrice"></div>
+                            <div class="data-change" id="priceChange24h"></div>
+                        </div>
+                    </div>
+                    <div class="card data-card">
+                        <div class="card__body">
+                            <div class="data-label">Market Cap</div>
+                            <div class="data-value" id="marketCap"></div>
+                            <div class="data-change" id="marketCapChange"></div>
+                        </div>
+                    </div>
+                    <div class="card data-card">
+                        <div class="card__body">
+                            <div class="data-label">Circulating Supply</div>
+                            <div class="data-value" id="circulatingSupply"></div>
+                        </div>
+                    </div>
+                    <div class="card data-card">
+                        <div class="card__body">
+                            <div class="data-label">7-Day Change</div>
+                            <div class="data-value" id="priceChange7d"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mvrv-section">
+                    <div class="card mvrv-card">
+                        <div class="card__body">
+                            <h3>MVRV Analysis</h3>
+                            <div class="mvrv-grid">
+                                <div class="mvrv-item">
+                                    <div class="mvrv-label">Market Value (MV)</div>
+                                    <div class="mvrv-value" id="marketValue"></div>
+                                </div>
+                                <div class="mvrv-item">
+                                    <div class="mvrv-label">Realized Value (RV) <span class="tooltip">ⓘ<span class="tooltiptext">Estimated using historical price data</span></span></div>
+                                    <div class="mvrv-value" id="realizedValue"></div>
+                                </div>
+                                <div class="mvrv-item">
+                                    <div class="mvrv-label">MVRV Ratio</div>
+                                    <div class="mvrv-value mvrv-ratio" id="mvrvRatio"></div>
+                                </div>
+                                <div class="mvrv-item">
+                                    <div class="mvrv-label">Holder Profit/Loss</div>
+                                    <div class="mvrv-value" id="holderProfit"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card status-card" id="statusCard">
+                        <div class="card__body">
+                            <div class="status-indicator" id="statusIndicator"></div>
+                            <div class="status-description" id="statusDescription"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card gauge-card">
+                    <div class="card__body">
+                        <h3>MVRV Gauge</h3>
+                        <div class="gauge-container">
+                            <canvas id="gaugeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card info-card">
+                    <div class="card__body">
+                        <h3>Understanding MVRV</h3>
+                        <p>MVRV (Market Value to Realized Value) is a powerful on-chain metric that compares the current market capitalization to the realized capitalization (average cost basis of all holders).</p>
+                        <div class="mvrv-zones">
+                            <div class="zone-item" style="background-color: rgba(139, 0, 0, 0.1); border-left: 4px solid #8B0000;">
+                                <strong>Euphoria (MVRV &gt; 3.5):</strong> Major sell signal, extreme profit-taking likely
+                            </div>
+                            <div class="zone-item" style="background-color: rgba(255, 69, 0, 0.1); border-left: 4px solid #FF4500;">
+                                <strong>Overheated (2.0 - 3.5):</strong> Profit-taking risk, proceed with caution
+                            </div>
+                            <div class="zone-item" style="background-color: rgba(255, 165, 0, 0.1); border-left: 4px solid #FFA500;">
+                                <strong>Caution (1.5 - 2.0):</strong> Moderately overvalued, monitor closely
+                            </div>
+                            <div class="zone-item" style="background-color: rgba(255, 215, 0, 0.1); border-left: 4px solid #FFD700;">
+                                <strong>Fair Value (1.2 - 1.5):</strong> Bull market conditions
+                            </div>
+                            <div class="zone-item" style="background-color: rgba(144, 238, 144, 0.1); border-left: 4px solid #90EE90;">
+                                <strong>Normal (1.0 - 1.2):</strong> Moderately valued, healthy range
+                            </div>
+                            <div class="zone-item" style="background-color: rgba(0, 170, 0, 0.1); border-left: 4px solid #00AA00;">
+                                <strong>Undervalued (0.8 - 1.0):</strong> Potential buying opportunity
+                            </div>
+                            <div class="zone-item" style="background-color: rgba(0, 100, 0, 0.1); border-left: 4px solid #006400;">
+                                <strong>Heavily Undervalued (&lt; 0.8):</strong> Capitulation phase, potential bottom
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparison Section -->
+        <section id="comparisonSection" class="analysis-section hidden">
+            <div class="card">
+                <div class="card__body">
+                    <h3>Multi-Coin MVRV Comparison</h3>
+                    <p class="comparison-description">Compare MVRV ratios across multiple cryptocurrencies</p>
+                    <button class="btn btn--primary" id="refreshComparisonBtn">Refresh Comparison Data</button>
+                </div>
+            </div>
+
+            <div id="comparisonLoading" class="loading-spinner hidden">
+                <div class="spinner"></div>
+                <p>Loading comparison data...</p>
+            </div>
+
+            <div id="comparisonError" class="error-message hidden"></div>
+
+            <div id="comparisonResults" class="comparison-results hidden">
+                <div class="card">
+                    <div class="card__body">
+                        <div class="comparison-chart-container">
+                            <canvas id="comparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card__body">
+                        <div class="comparison-table-container">
+                            <table class="comparison-table" id="comparisonTable">
+                                <thead>
+                                    <tr>
+                                        <th>Cryptocurrency</th>
+                                        <th>Price</th>
+                                        <th>Market Cap</th>
+                                        <th>MVRV Ratio</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="comparisonTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>Data provided by <a href="https://www.coingecko.com/" target="_blank">CoinGecko API</a> | Rate Limit: 30 calls/minute</p>
+            <p><small>Disclaimer: This is for educational purposes only. Not financial advice.</small></p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
