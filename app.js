@@ -395,6 +395,24 @@ async function calculateMVRV(coinId) {
 
 // Fetch comparison data
 async function fetchComparisonData() {
+    const cacheKey = `comparison_data_${comparisonCoins.join('_')}`;
+    const cachedData = localStorage.getItem(cacheKey);
+
+    if (cachedData) {
+        const { timestamp, data } = JSON.parse(cachedData);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+            console.log('Returning cached comparison data');
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = '';
+            data.forEach(updateComparisonTableRow);
+            createComparisonChart(data);
+            showElement('comparisonResults');
+            hideElement('comparisonLoading');
+            hideElement('comparisonError');
+            return;
+        }
+    }
+
     showElement('comparisonLoading');
     hideElement('comparisonError');
     hideElement('comparisonResults');
@@ -403,6 +421,7 @@ async function fetchComparisonData() {
     tbody.innerHTML = '';
 
     try {
+        console.log('Fetching new comparison data');
         const coinIds = comparisonCoins.join(',');
         const marketApiUrl = `${API_BASE_URL}/coins/markets?vs_currency=usd&ids=${coinIds}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d&${API_KEY}`;
         const marketDataArray = await fetchData(marketApiUrl);
@@ -427,6 +446,8 @@ async function fetchComparisonData() {
                 status: getMVRVStatus(mvrv)
             };
         });
+
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: results }));
 
         results.forEach(updateComparisonTableRow);
         createComparisonChart(results);
