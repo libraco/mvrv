@@ -418,6 +418,8 @@ async function fetchComparisonData() {
             } catch (error) {
                 console.error(`Error fetching ${coinId}:`, error);
             }
+            // Wait between calls to avoid rate limiting, even with caching
+            await new Promise(resolve => setTimeout(resolve, 1500));
         }
         
         if (results.length === 0) {
