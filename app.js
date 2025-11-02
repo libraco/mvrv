@@ -7,18 +7,17 @@ let chartInstance = null;
 let comparisonChartInstance = null;
 
 // Constants
-const API_BASE_URL = 'https://api.coingecko.com/api/v3';
-const API_KEY = 'x_cg_demo_api_key=CG-SYs6geL25Bic3Haoyp6Me9yf'; // User-provided demo key
+// IMPORTANT: Replace this with your deployed proxy server URL
+const PROXY_BASE_URL = 'http://localhost:3000';
 
-// Global fetch helper
-const fetchData = async (url) => {
-    const response = await fetch(url);
+// Global fetch helper for proxy
+const fetchData = async (endpoint) => {
+    const response = await fetch(`${PROXY_BASE_URL}/proxy?endpoint=${encodeURIComponent(endpoint)}`);
     if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        if (errorData && errorData.status && errorData.status.error_message) {
-            throw new Error(errorData.status.error_message);
-        }
-        throw new Error(`Network response was not ok. Status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response from proxy' }));
+        // Extract the actual error message from CoinGecko if available
+        const errorMessage = errorData.error?.error?.message || errorData.error || `Proxy request failed with status: ${response.status}`;
+        throw new Error(errorMessage);
     }
     return response.json();
 };
@@ -194,8 +193,8 @@ async function fetchCoinData(coinId) {
     console.log(`Fetching new data for ${coinId}`);
 
     try {
-        const apiUrl = `${API_BASE_URL}/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true&${API_KEY}`;
-        const data = await fetchData(apiUrl);
+        const endpoint = `/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true`;
+        const data = await fetchData(endpoint);
 
         if (!data || !data.market_data) {
             throw new Error('Coin not found or invalid data from API.');
@@ -442,8 +441,8 @@ async function fetchComparisonData() {
     try {
         console.log('Fetching new comparison data');
         const coinIds = comparisonCoins.join(',');
-        const marketApiUrl = `${API_BASE_URL}/coins/markets?vs_currency=usd&ids=${coinIds}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d&${API_KEY}`;
-        const marketDataArray = await fetchData(marketApiUrl);
+        const endpoint = `/coins/markets?vs_currency=usd&ids=${coinIds}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d`;
+        const marketDataArray = await fetchData(endpoint);
 
         if (!marketDataArray || marketDataArray.length === 0) {
             throw new Error('No data returned for comparison coins.');
