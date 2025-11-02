@@ -146,17 +146,29 @@ function getMVRVStatus(mvrv) {
 }
 
 // Fetch coin data from CoinGecko
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 async function fetchCoinData(coinId) {
+    const cacheKey = `coin_data_${coinId}`;
+    const cachedData = localStorage.getItem(cacheKey);
+
+    if (cachedData) {
+        const { timestamp, data } = JSON.parse(cachedData);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+            console.log(`Returning cached data for ${coinId}`);
+            return data;
+        }
+    }
+
+    console.log(`Fetching new data for ${coinId}`);
     const fetchData = async (url) => {
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Network response was not ok.');
         }
         const data = await response.json();
-        // allorigins.win wraps the response in a 'contents' field
         if (data.contents) {
             const parsedData = JSON.parse(data.contents);
-            // Check for API errors from CoinGecko within the wrapped response
             if (parsedData.status && parsedData.status.error_code) {
                 throw new Error(parsedData.status.error_message || 'CoinGecko API error');
             }
@@ -166,7 +178,6 @@ async function fetchCoinData(coinId) {
     };
 
     try {
-        // Fetch market data
         const marketApiUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinId}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d`;
         const marketData = await fetchData(`https://api.allorigins.win/get?url=${encodeURIComponent(marketApiUrl)}`);
 
@@ -174,26 +185,28 @@ async function fetchCoinData(coinId) {
             throw new Error('Coin not found. Please check the coin ID.');
         }
 
-        // Wait a bit to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1200)); // Adjusted delay
+        await new Promise(resolve => setTimeout(resolve, 1200));
 
-        // Fetch historical data (30 days)
         const historicalApiUrl = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=30`;
         let historicalData = null;
         try {
             historicalData = await fetchData(`https://api.allorigins.win/get?url=${encodeURIComponent(historicalApiUrl)}`);
         } catch (histError) {
             console.warn(`Could not fetch historical data: ${histError.message}`);
-            // Proceed without historical data, the app can handle it
         }
 
-        return {
+        const result = {
             market: marketData[0],
             historical: historicalData
         };
+
+        // Cache the new data
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: result }));
+
+        return result;
     } catch (error) {
         console.error('Error fetching coin data:', error);
-        throw error; // Re-throw the original error to be caught by calculateMVRV
+        throw error;
     }
 }
 
