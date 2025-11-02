@@ -7,9 +7,9 @@ let chartInstance = null;
 let comparisonChartInstance = null;
 
 // Constants
-const PROXY_URL = 'https://api.allorigins.win/get?url=';
 const API_BASE_URL = 'https://api.coingecko.com/api/v3';
-const RATE_LIMIT_DELAY = 5000; // 5 seconds between calls
+const API_KEY = 'x_cg_demo_api_key=CG-B6a35k9a1a2bYd1d3e1f5g7H'; // Free demo key
+const PROXY_URL = 'https://api.allorigins.win/get?url=';
 
 // Update current time
 function updateCurrentTime() {
@@ -164,23 +164,18 @@ async function fetchCoinData(coinId) {
     const fetchData = async (url) => {
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error('Network response was not ok.');
-        }
-        const data = await response.json();
-        if (data.contents) {
-            const parsedData = JSON.parse(data.contents);
-            if (parsedData.status && parsedData.status.error_code) {
-                throw new Error(parsedData.status.error_message || 'CoinGecko API error');
+            const errorData = await response.json().catch(() => null);
+            if (errorData && errorData.status && errorData.status.error_message) {
+                throw new Error(errorData.status.error_message);
             }
-            return parsedData;
+            throw new Error(`Network response was not ok. Status: ${response.status}`);
         }
-        return data;
+        return response.json();
     };
 
     try {
-        // Combined API call for market and historical data
-        const apiUrl = `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true`;
-        const data = await fetchData(`https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`);
+        const apiUrl = `${API_BASE_URL}/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true&${API_KEY}`;
+        const data = await fetchData(apiUrl);
 
         if (!data || !data.market_data) {
             throw new Error('Coin not found or invalid data from API.');
@@ -408,9 +403,8 @@ async function fetchComparisonData() {
 
     try {
         const coinIds = comparisonCoins.join(',');
-        const marketApiUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinIds}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d`;
-
-        const marketDataArray = await fetchData(`https://api.allorigins.win/get?url=${encodeURIComponent(marketApiUrl)}`);
+        const marketApiUrl = `${API_BASE_URL}/coins/markets?vs_currency=usd&ids=${coinIds}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d&${API_KEY}`;
+        const marketDataArray = await fetchData(marketApiUrl);
 
         if (!marketDataArray || marketDataArray.length === 0) {
             throw new Error('No data returned for comparison coins.');
