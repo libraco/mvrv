@@ -178,25 +178,37 @@ async function fetchCoinData(coinId) {
     };
 
     try {
-        const marketApiUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinId}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d`;
-        const marketData = await fetchData(`https://api.allorigins.win/get?url=${encodeURIComponent(marketApiUrl)}`);
+        // Combined API call for market and historical data
+        const apiUrl = `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true`;
+        const data = await fetchData(`https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`);
 
-        if (!marketData || marketData.length === 0) {
-            throw new Error('Coin not found. Please check the coin ID.');
+        if (!data || !data.market_data) {
+            throw new Error('Coin not found or invalid data from API.');
         }
 
-        await new Promise(resolve => setTimeout(resolve, 1200));
+        // Reconstruct market and historical data from the single response
+        const marketData = {
+            id: data.id,
+            name: data.name,
+            symbol: data.symbol,
+            current_price: data.market_data.current_price.usd,
+            market_cap: data.market_data.market_cap.usd,
+            circulating_supply: data.market_data.circulating_supply,
+            price_change_percentage_24h: data.market_data.price_change_percentage_24h,
+            market_cap_change_percentage_24h: data.market_data.market_cap_change_percentage_24h,
+            price_change_percentage_7d_in_currency: data.market_data.price_change_percentage_7d_in_currency.usd
+        };
 
-        const historicalApiUrl = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=30`;
-        let historicalData = null;
-        try {
-            historicalData = await fetchData(`https://api.allorigins.win/get?url=${encodeURIComponent(historicalApiUrl)}`);
-        } catch (histError) {
-            console.warn(`Could not fetch historical data: ${histError.message}`);
-        }
+        const historicalData = {
+            prices: data.market_data.sparkline_7d.price.map((price, index) => {
+                // Create timestamps for the last 7 days
+                const timestamp = Date.now() - (7 - index) * 24 * 60 * 60 * 1000;
+                return [timestamp, price];
+            })
+        };
 
         const result = {
-            market: marketData[0],
+            market: marketData,
             historical: historicalData
         };
 
