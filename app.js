@@ -9,7 +9,19 @@ let comparisonChartInstance = null;
 // Constants
 const API_BASE_URL = 'https://api.coingecko.com/api/v3';
 const API_KEY = 'x_cg_demo_api_key=CG-B6a35k9a1a2bYd1d3e1f5g7H'; // Free demo key
-const PROXY_URL = 'https://api.allorigins.win/get?url=';
+
+// Global fetch helper
+const fetchData = async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        if (errorData && errorData.status && errorData.status.error_message) {
+            throw new Error(errorData.status.error_message);
+        }
+        throw new Error(`Network response was not ok. Status: ${response.status}`);
+    }
+    return response.json();
+};
 
 // Update current time
 function updateCurrentTime() {
@@ -161,17 +173,6 @@ async function fetchCoinData(coinId) {
     }
 
     console.log(`Fetching new data for ${coinId}`);
-    const fetchData = async (url) => {
-        const response = await fetch(url);
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            if (errorData && errorData.status && errorData.status.error_message) {
-                throw new Error(errorData.status.error_message);
-            }
-            throw new Error(`Network response was not ok. Status: ${response.status}`);
-        }
-        return response.json();
-    };
 
     try {
         const apiUrl = `${API_BASE_URL}/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true&${API_KEY}`;
